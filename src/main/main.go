@@ -7,12 +7,9 @@ package main
 import (
 	"FileShare/src/fileshare"
 	"encoding/json"
-	"fmt"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
-	"time"
-
-	"github.com/gorilla/mux"
 )
 
 func pingFunc(w http.ResponseWriter, r *http.Request) {
@@ -21,19 +18,21 @@ func pingFunc(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	start := time.Now()
 	m := fileshare.MakeSwarmMaster()
-	t1 := time.Now()
-	elapsed := t1.Sub(start)
+
+	// Create Swarm Master
+	m.MasterTest()
 
 	router := mux.NewRouter()
 
-	// Create Swarm Master
-	fmt.Printf("SwarmMaster start time: %v\n", elapsed)
-	m.MasterTest()
-
 	// All the routes
 	router.HandleFunc("/ping", pingFunc).Methods("GET")
+	router.HandleFunc("/nodes", func(writer http.ResponseWriter, request *http.Request) {
+		nodes := m.GetActiveNodes()
+
+		writer.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(writer).Encode(nodes)
+	})
 
 	log.Fatal(http.ListenAndServe(":5000", router))
 }

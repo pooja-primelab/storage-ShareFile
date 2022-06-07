@@ -127,3 +127,18 @@ func MakeSwarmMaster() *SwarmMaster {
 	m.server()
 	return &m
 }
+
+/*
+	Returns Ids of active nodes
+*/
+func (m *SwarmMaster) GetActiveNodes() []int {
+	node := make([]int, 0)
+
+	for _, peer := range m.peers {
+		if peer.PeerID == 0 && !peer.isConnected {
+			continue
+		}
+		node = append(node, peer.PeerID)
+	}
+	return node
+}
