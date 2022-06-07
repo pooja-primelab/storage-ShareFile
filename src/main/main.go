@@ -37,6 +37,7 @@ func createPeer(w http.ResponseWriter, r *http.Request) {
 	testDirectory := "testdirs/peer" + strconv.Itoa(id) + "/"
 	port := ":" + strconv.Itoa(60120+id)
 	p1 := fileshare.MakePeer(id, testDirectory, port)
+	p1.ConnectServer()
 
 	w.Header().Set("Contetnt-Type", "application/json")
 	json.NewEncoder(w).Encode(p1)
