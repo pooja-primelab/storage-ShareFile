@@ -53,12 +53,12 @@ func main() {
 
 	// All the routes
 	router.HandleFunc("/ping", pingFunc).Methods("GET")
-	router.HandleFunc("/nodes", func(writer http.ResponseWriter, request *http.Request) {
+	router.HandleFunc("/getActivePeers", func(writer http.ResponseWriter, request *http.Request) {
 		nodes := m.GetActiveNodes()
 
 		writer.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(writer).Encode(nodes)
-	})
+	}).Methods("GET")
 	router.HandleFunc("/createPeer", createPeer).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":5000", router))
