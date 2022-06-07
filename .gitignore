@@ -1,0 +1,4 @@
+# Jetbrains config
+.idea/
+
+go.mod
