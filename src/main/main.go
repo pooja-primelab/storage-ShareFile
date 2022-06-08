@@ -1,23 +1,22 @@
-/*
-	This file acts as a "test" program to simulate a FileShare network.
-*/
-
 package main
 
 import (
 	"FileShare/src/fileshare"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
-
-	"github.com/gorilla/mux"
 )
 
+var m *fileshare.SwarmMaster
+var r *mux.Router
+
 func pingFunc(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Pong")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(`Pong`)
 }
 
 func createPeer(w http.ResponseWriter, r *http.Request) {
@@ -39,27 +38,60 @@ func createPeer(w http.ResponseWriter, r *http.Request) {
 	p1 := fileshare.MakePeer(id, testDirectory, port)
 	p1.ConnectServer()
 
-	w.Header().Set("Contetnt-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(p1)
 }
 
+func upload(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(10)
+
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(err.Error())
+		return
+	}
+	defer file.Close()
+	fmt.Println(handler.Filename, "uploaded")
+
+	tempFile, err := ioutil.TempFile("temp", "file.*.txt")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer tempFile.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	tempFile.Write(fileBytes)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(`Successfully Uploaded File`)
+}
+
+func getActiveNodes(w http.ResponseWriter, r *http.Request) {
+	nodes := m.GetActiveNodes()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(nodes)
+}
+
 func main() {
-	m := fileshare.MakeSwarmMaster()
+	m = fileshare.MakeSwarmMaster()
+	m.MasterTest() // this isn't really needed - we can move the code to
 
-	// Create Swarm Master
-	m.MasterTest()
+	setupRoutes()
+}
 
-	router := mux.NewRouter()
+func setupRoutes() {
+	r = mux.NewRouter()
 
-	// All the routes
-	router.HandleFunc("/ping", pingFunc).Methods("GET")
-	router.HandleFunc("/getActivePeers", func(writer http.ResponseWriter, request *http.Request) {
-		nodes := m.GetActiveNodes()
+	r.HandleFunc("/ping", pingFunc).Methods("GET")
+	r.HandleFunc("/getActivePeers", getActiveNodes).Methods("GET")
+	r.HandleFunc("/upload", upload).Methods("POST")
+	r.HandleFunc("/createPeer", createPeer).Methods("POST")
 
-		writer.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(writer).Encode(nodes)
-	}).Methods("GET")
-	router.HandleFunc("/createPeer", createPeer).Methods("POST")
-
-	log.Fatal(http.ListenAndServe(":5000", router))
+	log.Fatal(http.ListenAndServe(":5000", r))
 }
