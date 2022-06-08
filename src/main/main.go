@@ -4,11 +4,12 @@ import (
 	"FileShare/src/fileshare"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 var m *fileshare.SwarmMaster
@@ -82,7 +83,41 @@ func main() {
 	m = fileshare.MakeSwarmMaster()
 	m.MasterTest() // this isn't really needed - we can move the code to
 
+	staticFunctionality()
 	setupRoutes()
+}
+
+func staticFunctionality() {
+	//creating 5 peers and connect with server
+	p1 := fileshare.MakePeer(1, "testdirs/peer1/", ":60121")
+	p2 := fileshare.MakePeer(2, "testdirs/peer2/", ":60122")
+	p3 := fileshare.MakePeer(3, "testdirs/peer3/", ":60123")
+	p4 := fileshare.MakePeer(4, "testdirs/peer4/", ":60124")
+	p5 := fileshare.MakePeer(5, "testdirs/peer5/", ":60125")
+	p1.ConnectServer()
+	p2.ConnectServer()
+	p3.ConnectServer()
+	p4.ConnectServer()
+	p5.ConnectServer()
+
+	//Register Files
+	p1.RegisterFile("test.txt")
+	p2.RegisterFile("test2.txt")
+	p3.RegisterFile("test3.txt")
+	p4.RegisterFile("test4.txt")
+	p5.RegisterFile("test5.txt")
+
+	//Peer Connecting with other peers and sharing files
+	p1.ConnectPeer(":60122", 2)
+	p1.RequestFile(":60122", 2, "test2.txt")
+
+	p2.ConnectPeer(":60123", 3)
+	p2.RequestFile(":60123", 3, "test3.txt")
+
+	//Search file
+	p1.SearchForFile("test3.txt")
+	p2.SearchForFile("test4.txt")
+	p3.SearchForFile("test9.txt")
 }
 
 func setupRoutes() {
