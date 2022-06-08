@@ -1,38 +1,72 @@
-/*
-	This file acts as a "test" program to simulate a FileShare network.
-*/
-
 package main
 
 import (
 	"FileShare/src/fileshare"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
 
+var m *fileshare.SwarmMaster
+var r *mux.Router
+
 func pingFunc(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Contetnt-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(`Pong`)
 }
 
+func upload(w http.ResponseWriter, r *http.Request) {
+	r.ParseMultipartForm(10)
+
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(err.Error())
+		return
+	}
+	defer file.Close()
+	fmt.Println(handler.Filename, "uploaded")
+
+	tempFile, err := ioutil.TempFile("temp", handler.Filename)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer tempFile.Close()
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	tempFile.Write(fileBytes)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(`Successfully Uploaded File`)
+}
+
+func getActiveNodes(w http.ResponseWriter, r *http.Request) {
+	nodes := m.GetActiveNodes()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(nodes)
+}
+
 func main() {
-	m := fileshare.MakeSwarmMaster()
+	m = fileshare.MakeSwarmMaster()
+	m.MasterTest() // this isn't really needed - we can move the code to
 
-	// Create Swarm Master
-	m.MasterTest()
+	setupRoutes()
+}
 
-	router := mux.NewRouter()
+func setupRoutes() {
+	r = mux.NewRouter()
 
-	// All the routes
-	router.HandleFunc("/ping", pingFunc).Methods("GET")
-	router.HandleFunc("/nodes", func(writer http.ResponseWriter, request *http.Request) {
-		nodes := m.GetActiveNodes()
+	r.HandleFunc("/ping", pingFunc).Methods("GET")
+	r.HandleFunc("/nodes", getActiveNodes).Methods("GET")
+	r.HandleFunc("/upload", upload).Methods("POST")
 
-		writer.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(writer).Encode(nodes)
-	})
-
-	log.Fatal(http.ListenAndServe(":5000", router))
+	log.Fatal(http.ListenAndServe(":5000", r))
 }
