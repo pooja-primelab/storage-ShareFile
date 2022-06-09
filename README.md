@@ -1,12 +1,12 @@
 # FileShare
-FileShare is an effort to prototype a distributed, peer-to-peer file sharing (or torrenting) network. The Peers are different nodes or users in the network who may wish to share files with one another, while the SwarmMaster acts almost like an indexing server, helping a Peer to join the network and find files on other Peers.  
+This is simple distributed P2P file sharing network allowing nodes to connect, register and share files.   
 
 ## Run Project in Local
 ```
 cd src/main
 go run main.go
-
 ```
+This starts a HTTP server running on port: 5000
 
 ## Contents 
 * `src/`: Contains the code for FileShare, a peer-to-peer distributed file sharing system.
@@ -21,7 +21,7 @@ After running ```go run main.go``` a localhost http server is start that runs on
 localhost:5000/createPeer
 ```
 
-#### Get Active nodes:
+#### Get nodes:
 ```
 localhost:5000/getActivePeers
 ```
