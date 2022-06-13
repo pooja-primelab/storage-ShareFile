@@ -248,22 +248,41 @@ func SaveFileInfo(chunk File) []File {
 
 func (chain *FileDB) GetChunkByKey(key string) string {
 
-	var file []byte
+	// var file []byte
 
-	chain.Database.View(func(txn *badger.Txn) error {
+	// chain.Database.View(func(txn *badger.Txn) error {
 
-		item, err := txn.Get([]byte(key))
-		if err != nil {
-			fmt.Println("Key not found.")
-			return err
+	// 	item, err := txn.Get([]byte(key))
+	// 	if err != nil {
+	// 		fmt.Println("Key not found.")
+	// 		return err
+	// 	}
+	// 	file, err = item.Value()
+	// 	fmt.Println("Item: ", string(file))
+	// 	Handle(err)
+	// 	return err
+	// })
+
+	var finalResponse []byte
+	file, err := ioutil.ReadFile("output.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var data []File
+	err = json.Unmarshal(file, &data)
+
+	for _, c := range data {
+		newKey := string(c.Chunkname)
+		if newKey == key {
+			reqBodyBytes2 := new(bytes.Buffer)
+			json.NewEncoder(reqBodyBytes2).Encode(c)
+			finalResponse = reqBodyBytes2.Bytes()
 		}
-		file, err = item.Value()
-		fmt.Println("Item: ", string(file))
-		Handle(err)
-		return err
-	})
-
-	return string(file)
+	}
+	if len(finalResponse) == 0 {
+		return string(`{"message": "No data found"}`)
+	}
+	return string(finalResponse)
 }
 
 func (chain *FileDB) GetChunksByPrefix(prefix string, ownername string) []File {
