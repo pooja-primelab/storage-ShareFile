@@ -167,8 +167,8 @@ func writefile(data []string, filePath string, m *SwarmMaster, name string) {
 		chunks.ChuckIndex = index
 		chunks.Port = registerPeers[counter].Port
 
-		inst := SaveFileInfo(chunks)
-		inst.Database.Close()
+		SaveFileInfo(chunks)
+		// inst.Database.Close()
 
 		if err != nil {
 			fmt.Println(err)
@@ -224,20 +224,26 @@ func GetDBinstacnce() *FileDB {
 	return &blockchain
 }
 
-func SaveFileInfo(chunk File) *FileDB {
-	db := GetDBinstacnce()
+func SaveFileInfo(chunk File) []File {
 
 	reqBodyBytes := new(bytes.Buffer)
 	json.NewEncoder(reqBodyBytes).Encode(chunk)
 	key := chunk.Chunkname
 	fmt.Println("key is ", key)
-	db.Database.Update(func(txn *badger.Txn) error {
-		err2 := txn.Set([]byte(key), reqBodyBytes.Bytes())
-		return err2
-	})
 
-	blockchain := FileDB{Database: db.Database}
-	return &blockchain
+	file, err := ioutil.ReadFile("output.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var data []File
+	err = json.Unmarshal(file, &data)
+	data = append(data, chunk)
+
+	reqBodyBytes2 := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes2).Encode(data)
+	ioutil.WriteFile("output.json", reqBodyBytes2.Bytes(), 0644)
+
+	return data
 }
 
 func (chain *FileDB) GetChunkByKey(key string) string {
