@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -34,8 +35,11 @@ func createPeer(w http.ResponseWriter, r *http.Request) {
 
 	var id int = int(jsonRes["id"].(float64))
 	fmt.Println("id", id)
-	testDirectory := "testdirs/peer" + strconv.Itoa(id) + "/"
+	testDirectory := "testdirs/peer" + strconv.Itoa(id)
 	port := ":" + strconv.Itoa(60120+id)
+
+	os.MkdirAll(testDirectory, 0777)
+
 	p1 := fileshare.MakePeer(id, testDirectory, port)
 	p1.ConnectServer()
 
@@ -55,7 +59,8 @@ func upload(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 	fmt.Println(handler.Filename, "uploaded")
 
-	tempFile, err := ioutil.TempFile("temp", "file.*.txt")
+	tempFile, err := ioutil.TempFile("", "file.*.txt")
+
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -68,6 +73,8 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 	tempFile.Write(fileBytes)
 
+	fileshare.CreateChunksAndEncrypt(tempFile.Name(), m, handler.Filename)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(`Successfully Uploaded File`)
 }
@@ -79,11 +86,26 @@ func getActiveNodes(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(nodes)
 }
 
+func getChunkByKey(w http.ResponseWriter, r *http.Request) {
+	key := mux.Vars(r)["key"]
+	setupHeader(w)
+	inst := fileshare.GetDBinstacnce()
+	data := inst.GetChunkByKey(key)
+	inst.Database.Close()
+	w.Write([]byte(data))
+}
+
+func setupHeader(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Content-Type", "application/json")
+}
+
 func main() {
 	m = fileshare.MakeSwarmMaster()
 	m.MasterTest() // this isn't really needed - we can move the code to
 
-	staticFunctionality()
+	//	staticFunctionality()
 	setupRoutes()
 }
 
@@ -120,6 +142,15 @@ func staticFunctionality() {
 	p3.SearchForFile("test9.txt")
 }
 
+func searchFile(w http.ResponseWriter, r *http.Request) {
+
+	setupHeader(w)
+	inst := fileshare.GetDBinstacnce()
+	files := inst.SearchFiles("demo.txt")
+	inst.Database.Close()
+	json.NewEncoder(w).Encode(files)
+}
+
 func setupRoutes() {
 	r = mux.NewRouter()
 
@@ -127,6 +158,8 @@ func setupRoutes() {
 	r.HandleFunc("/getActivePeers", getActiveNodes).Methods("GET")
 	r.HandleFunc("/upload", upload).Methods("POST")
 	r.HandleFunc("/createPeer", createPeer).Methods("POST")
+	r.HandleFunc("/getChunkByKey/{key}", getChunkByKey).Methods("GET")
+	r.HandleFunc("/searchFile", searchFile).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(":5000", r))
+	log.Fatal(http.ListenAndServe(":5001", r))
 }

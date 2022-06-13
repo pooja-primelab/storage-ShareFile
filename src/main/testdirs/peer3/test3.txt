@@ -1,1 +1,0 @@
-But to do good and to communicate forget not: for with such sacrifices God is well pleased.
