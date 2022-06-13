@@ -16,16 +16,28 @@ This starts a HTTP server running on port: 5000
 ## How to use
 After running ```go run main.go``` a localhost http server is start that runs on port ```5000```. Below are available endpoints
 
+## API Documentation
+
 #### Create new peer:
 ```
-localhost:5000/createPeer
+curl --location --request POST 'localhost:5001/createPeer' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "id": 12
+}'
 ```
 
 #### Get nodes:
 ```
-localhost:5000/getActivePeers
+curl --location --request GET 'localhost:5001/getActivePeers'
 ```
 #### Upload file:
 ```
-localhost:5000/upload
+curl --location --request POST 'localhost:5001/upload' \
+--form 'file=@"/Users/vipulpanchal/Desktop/demo.txt"'
+```
+
+#### Search File
+```
+curl --location --request GET 'localhost:5001/searchFile/demo.txt?ownername=StorageTeam'
 ```

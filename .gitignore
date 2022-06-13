@@ -3,3 +3,5 @@
 
 go.mod
 .temp/
+src/main/testdirs/**
+src/main/database/**
