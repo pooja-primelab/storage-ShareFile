@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -36,11 +37,19 @@ func createPeer(w http.ResponseWriter, r *http.Request) {
 	var id int = int(jsonRes["id"].(float64))
 	fmt.Println("id", id)
 	testDirectory := "testdirs/peer" + strconv.Itoa(id)
-	port := ":" + strconv.Itoa(60120+id)
+	const nodeIdPrefix = 60120
+	port := ":" + strconv.Itoa(nodeIdPrefix+id)
 
 	os.MkdirAll(testDirectory, 0777)
 
 	p1 := fileshare.MakePeer(id, testDirectory, port)
+	nodes := m.GetActiveNodes()
+	if len(nodes) > 0 {
+		fmt.Println("Available Nodes: ", nodes)
+		randomNodeId := rand.Int() % len(nodes)
+		fmt.Println("Node ", id, " will connect with ", nodes[randomNodeId])
+		p1.ConnectPeer(":"+strconv.Itoa(nodeIdPrefix+nodes[randomNodeId]), nodes[randomNodeId])
+	}
 	p1.ConnectServer()
 
 	w.Header().Set("Content-Type", "application/json")

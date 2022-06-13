@@ -136,7 +136,7 @@ func CreateChunksAndEncrypt(filepath string, m *SwarmMaster, name string) {
 
 func writefile(data []string, filePath string, m *SwarmMaster, name string) {
 
-	nodes := []int{}
+	nodes := m.GetActiveNodes()
 
 	nodesLen := len(nodes)
 	counter := 0
