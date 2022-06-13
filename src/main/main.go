@@ -146,9 +146,20 @@ func searchFile(w http.ResponseWriter, r *http.Request) {
 
 	setupHeader(w)
 	inst := fileshare.GetDBinstacnce()
-	files := inst.SearchFiles("demo.txt")
+	files := inst.SearchFiles("test.txt", "Amandeep")
 	inst.Database.Close()
 	json.NewEncoder(w).Encode(files)
+}
+
+func decryptFile(w http.ResponseWriter, r *http.Request) {
+	setupHeader(w)
+
+	inst := fileshare.GetDBinstacnce()
+	inst.ConvertDecryptFiles("test.txt", "Amandeep")
+	files := fileshare.ReadFile("./testdirs/" + "final.txt")
+	inst.Database.Close()
+	w.Write(files)
+	os.Remove("./testdirs/" + "final.txt")
 }
 
 func setupRoutes() {
@@ -160,6 +171,7 @@ func setupRoutes() {
 	r.HandleFunc("/createPeer", createPeer).Methods("POST")
 	r.HandleFunc("/getChunkByKey/{key}", getChunkByKey).Methods("GET")
 	r.HandleFunc("/searchFile", searchFile).Methods("GET")
+	r.HandleFunc("/deryptFile", decryptFile).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":5001", r))
 }

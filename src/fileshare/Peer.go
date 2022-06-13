@@ -9,6 +9,8 @@ import (
 	"sync"
 )
 
+var registerPeers []*Peer
+
 /*
 	Struct type for the Peers.
 */
@@ -107,5 +109,6 @@ func MakePeer(id int, directory string, port string) *Peer {
 	p.numPeers = 0
 
 	p.peerServer(port)
+	registerPeers = append(registerPeers, &p)
 	return &p
 }
