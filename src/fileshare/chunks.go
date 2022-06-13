@@ -78,9 +78,9 @@ func (chain *FileDB) ConvertDecryptFiles(fileName string, ownername string) {
 
 	chunks := chain.GetEncryptedFiles(fileName, ownername)
 
-	filename := "./testdirs/" + "final.txt"
+	tempfile := "./testdirs/" + "final.txt"
 
-	file, err := os.Create(filename)
+	file, err := os.Create(tempfile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,7 +95,7 @@ func (chain *FileDB) ConvertDecryptFiles(fileName string, ownername string) {
 		fmt.Println("file length is ", length, data)
 	}
 	defer file.Close()
-	databyte := ReadFile(filename)
+	databyte := ReadFile(tempfile)
 	fmt.Println("Actual data of saved file is ", string(databyte))
 }
 

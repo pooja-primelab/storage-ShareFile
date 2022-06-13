@@ -152,19 +152,24 @@ func staticFunctionality() {
 }
 
 func searchFile(w http.ResponseWriter, r *http.Request) {
+	filename := mux.Vars(r)["filename"]
+	ownername := r.URL.Query().Get("ownername")
 
 	setupHeader(w)
 	inst := fileshare.GetDBinstacnce()
-	files := inst.SearchFiles("test.txt", "Amandeep")
+	files := inst.SearchFiles(filename, ownername)
 	inst.Database.Close()
 	json.NewEncoder(w).Encode(files)
 }
 
 func decryptFile(w http.ResponseWriter, r *http.Request) {
+	filename := mux.Vars(r)["filename"]
+	ownername := r.URL.Query().Get("ownername")
+
 	setupHeader(w)
 
 	inst := fileshare.GetDBinstacnce()
-	inst.ConvertDecryptFiles("test.txt", "Amandeep")
+	inst.ConvertDecryptFiles(filename, ownername)
 	files := fileshare.ReadFile("./testdirs/" + "final.txt")
 	inst.Database.Close()
 	w.Write(files)
@@ -179,8 +184,8 @@ func setupRoutes() {
 	r.HandleFunc("/upload", upload).Methods("POST")
 	r.HandleFunc("/createPeer", createPeer).Methods("POST")
 	r.HandleFunc("/getChunkByKey/{key}", getChunkByKey).Methods("GET")
-	r.HandleFunc("/searchFile", searchFile).Methods("GET")
-	r.HandleFunc("/deryptFile", decryptFile).Methods("GET")
+	r.HandleFunc("/searchFile/{filename}", searchFile).Methods("GET")
+	r.HandleFunc("/deryptFile/{filename}", decryptFile).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":5001", r))
 }
