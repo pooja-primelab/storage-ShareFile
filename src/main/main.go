@@ -164,10 +164,8 @@ func decryptFile(w http.ResponseWriter, r *http.Request) {
 
 	setupHeader(w)
 
-	inst := fileshare.GetDBinstacnce()
-	inst.ConvertDecryptFiles(filename, ownername)
+	fileshare.ConvertDecryptFiles(filename, ownername)
 	files := fileshare.ReadFile("./testdirs/" + "final.txt")
-	inst.Database.Close()
 	w.Write(files)
 	os.Remove("./testdirs/" + "final.txt")
 }

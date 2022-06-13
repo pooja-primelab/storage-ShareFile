@@ -41,42 +41,55 @@ func ReadFile(file string) []byte {
 	return data
 }
 
-func (chain *FileDB) GetEncryptedFiles(fileName string, ownername string) []File {
+func GetEncryptedFiles(fileName string, ownername string) []File {
 
 	var chunks []File
 
-	chain.Database.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		prefix := []byte(fileName)
-		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-			item := it.Item()
-			k := item.Key()
-			fmt.Println("K >", string(k))
+	file, err := ioutil.ReadFile("output.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var data []File
+	err = json.Unmarshal(file, &data)
 
-			valCopy, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println("K >", string(k))
-			var p2 File
-
-			json.Unmarshal(valCopy, &p2)
-
-			if p2.Ownername == ownername {
-				chunks = append(chunks, p2)
-			}
-
+	for _, c := range data {
+		if string(c.Ownername) == ownername && strings.HasPrefix(c.FileName, fileName) {
+			chunks = append(chunks, c)
 		}
-		return nil
-	})
+	}
+
+	// chain.Database.View(func(txn *badger.Txn) error {
+	// 	it := txn.NewIterator(badger.DefaultIteratorOptions)
+	// 	defer it.Close()
+	// 	prefix := []byte(fileName)
+	// 	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+	// 		item := it.Item()
+	// 		k := item.Key()
+	// 		fmt.Println("K >", string(k))
+
+	// 		valCopy, err := item.ValueCopy(nil)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+
+	// 		fmt.Println("K >", string(k))
+	// 		var p2 File
+
+	// 		json.Unmarshal(valCopy, &p2)
+
+	// 		if p2.Ownername == ownername {
+	// 			chunks = append(chunks, p2)
+	// 		}
+
+	// 	}
+	// 	return nil
+	// })
 	return chunks
 }
 
-func (chain *FileDB) ConvertDecryptFiles(fileName string, ownername string) {
+func ConvertDecryptFiles(fileName string, ownername string) {
 
-	chunks := chain.GetEncryptedFiles(fileName, ownername)
+	chunks := GetEncryptedFiles(fileName, ownername)
 
 	tempfile := "./testdirs/" + "final.txt"
 
