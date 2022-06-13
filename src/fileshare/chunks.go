@@ -17,11 +17,9 @@ import (
 )
 
 const (
-	dbPath       = "./database"
-	cryptoKey    = "teteteteteetesdsdsdsdsdt"
-	EncryptedLoc = "./chunks/encrypted/"
-	DecryptedLoc = "./chunks/decrypted/"
-	chunkSize    = 4
+	dbPath            = "./database"
+	cryptoKey         = "teteteteteetesdsdsdsdsdt"
+	chunkFileSize int = 256 // bytes
 )
 
 func ReadDir(dirname string) []os.FileInfo {
@@ -120,6 +118,13 @@ func CreateChunksAndEncrypt(filepath string, m *SwarmMaster, name string) {
 		log.Fatal(err)
 	}
 	defer file.Close()
+
+	info, err := os.Stat(filepath)
+	if err != nil {
+		fmt.Println("Error", err)
+	}
+
+	chunkSize := (int(info.Size()) / chunkFileSize) + 1
 
 	scanner := bufio.NewScanner(file)
 	texts := make([]string, 0)
