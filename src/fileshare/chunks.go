@@ -161,7 +161,7 @@ func writefile(data []string, filePath string, m *SwarmMaster, name string) {
 		chunks.Chunkname = fileChunk
 		chunks.FilePath = path
 		chunks.FileName = name
-		chunks.Ownername = "Amandeep"
+		chunks.Ownername = "StorageTeam"
 		chunks.NodeAddress = strconv.Itoa(registerPeers[counter].PeerID)
 		chunks.BlockHash = []byte("SomeHash")
 		chunks.ChuckIndex = index
@@ -179,9 +179,9 @@ func writefile(data []string, filePath string, m *SwarmMaster, name string) {
 	}
 }
 
-func (chain *FileDB) SearchFiles(filename string, ownername string) []File {
+func SearchFiles(filename string, ownername string) []File {
 
-	chunks := chain.GetChunksByPrefix(filename, ownername)
+	chunks := GetChunksByPrefix(filename, ownername)
 
 	// for index, peer := range registerPeers {
 
@@ -285,35 +285,49 @@ func GetChunkByKey(key string) string {
 	return string(finalResponse)
 }
 
-func (chain *FileDB) GetChunksByPrefix(prefix string, ownername string) []File {
+func GetChunksByPrefix(prefix string, ownername string) []File {
 
 	var chunks []File
+
+	file, err := ioutil.ReadFile("output.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var data []File
+	err = json.Unmarshal(file, &data)
+
+	for _, c := range data {
+		if string(c.Ownername) == ownername && strings.HasPrefix(c.FileName, prefix) {
+			chunks = append(chunks, c)
+		}
+	}
+
 	// var dst []string
 
-	chain.Database.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		prefix := []byte(prefix)
-		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-			item := it.Item()
-			k := item.Key()
+	// chain.Database.View(func(txn *badger.Txn) error {
+	// 	it := txn.NewIterator(badger.DefaultIteratorOptions)
+	// 	defer it.Close()
+	// 	prefix := []byte(prefix)
+	// 	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
+	// 		item := it.Item()
+	// 		k := item.Key()
 
-			valCopy, err := item.ValueCopy(nil)
-			if err != nil {
-				return err
-			}
+	// 		valCopy, err := item.ValueCopy(nil)
+	// 		if err != nil {
+	// 			return err
+	// 		}
 
-			fmt.Println("K >", string(k))
-			var p2 File
+	// 		fmt.Println("K >", string(k))
+	// 		var p2 File
 
-			json.Unmarshal(valCopy, &p2)
+	// 		json.Unmarshal(valCopy, &p2)
 
-			if p2.Ownername == ownername {
-				chunks = append(chunks, p2)
-			}
-		}
-		return nil
-	})
+	// 		if p2.Ownername == ownername {
+	// 			chunks = append(chunks, p2)
+	// 		}
+	// 	}
+	// 	return nil
+	// })
 	return chunks
 }
 func Handle(err error) {

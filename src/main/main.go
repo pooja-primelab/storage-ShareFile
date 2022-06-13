@@ -154,9 +154,7 @@ func searchFile(w http.ResponseWriter, r *http.Request) {
 	ownername := r.URL.Query().Get("ownername")
 
 	setupHeader(w)
-	inst := fileshare.GetDBinstacnce()
-	files := inst.SearchFiles(filename, ownername)
-	inst.Database.Close()
+	files := fileshare.SearchFiles(filename, ownername)
 	json.NewEncoder(w).Encode(files)
 }
 
