@@ -185,7 +185,7 @@ func setupRoutes() {
 	r.HandleFunc("/createPeer", createPeer).Methods("POST")
 	r.HandleFunc("/getChunkByKey/{key}", getChunkByKey).Methods("GET")
 	r.HandleFunc("/searchFile/{filename}", searchFile).Methods("GET")
-	r.HandleFunc("/deryptFile/{filename}", decryptFile).Methods("GET")
+	r.HandleFunc("/decrypt/{filename}", decryptFile).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":5001", r))
 }
