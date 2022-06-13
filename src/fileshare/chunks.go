@@ -246,7 +246,7 @@ func SaveFileInfo(chunk File) []File {
 	return data
 }
 
-func (chain *FileDB) GetChunkByKey(key string) string {
+func GetChunkByKey(key string) string {
 
 	// var file []byte
 

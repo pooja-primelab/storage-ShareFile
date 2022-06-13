@@ -98,9 +98,7 @@ func getActiveNodes(w http.ResponseWriter, r *http.Request) {
 func getChunkByKey(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
 	setupHeader(w)
-	inst := fileshare.GetDBinstacnce()
-	data := inst.GetChunkByKey(key)
-	inst.Database.Close()
+	data := fileshare.GetChunkByKey(key)
 	w.Write([]byte(data))
 }
 
