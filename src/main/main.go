@@ -141,7 +141,7 @@ func decryptFile(w http.ResponseWriter, r *http.Request) {
 	tempFileName := "final" + fileExtension
 	files := fileshare.ReadFile("./testdirs/" + tempFileName)
 	w.Write(files)
-	os.Remove("./testdirs/" + tempFileName)
+	// os.Remove("./testdirs/" + tempFileName)
 }
 
 func setupRoutes() {

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -48,12 +49,25 @@ func ReadDir(dirname string) []os.FileInfo {
 	return files
 }
 
-func ReadFile(file string) []byte {
-	data, err := ioutil.ReadFile(file)
+func ReadFile(filePath string) []byte {
+	file, err := os.Open(filePath)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Inside Err")
+		fmt.Println(err)
 	}
-	return data
+	defer file.Close()
+
+	fileinfo, err := file.Stat()
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	filesize := fileinfo.Size()
+	buffer := make([]byte, filesize)
+
+	file.Read(buffer)
+	return buffer
 }
 
 func GetEncryptedFiles(fileName string, ownername string) []File {
@@ -78,6 +92,16 @@ func GetEncryptedFiles(fileName string, ownername string) []File {
 func ConvertDecryptFiles(fileName string, ownername string) string {
 
 	chunks := GetEncryptedFiles(fileName, ownername)
+	fmt.Println("chunks2: ", chunks)
+	sort.SliceStable(chunks, func(i, j int) bool {
+		return chunks[i].ChuckIndex < chunks[j].ChuckIndex
+	})
+	allFilePaths := make([]string, 0)
+	for _, elem := range chunks {
+		allFilePaths = append(allFilePaths, string(elem.FilePath))
+	}
+	fmt.Println("allFilePaths: ", allFilePaths)
+	allBufferData := RetrieveFilesFromChunk(allFilePaths)
 
 	tempfile := "./testdirs/" + "final" + chunks[0].FileExtension
 
@@ -86,41 +110,18 @@ func ConvertDecryptFiles(fileName string, ownername string) string {
 		log.Fatal(err)
 	}
 
-	for _, f := range chunks {
-		databyte := ReadFile(f.FilePath)
-		data := DecryptFile(string(databyte))
-		length, err := io.WriteString(file, data)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("file length is ", length, data)
-	}
+	file.Write(allBufferData)
+
 	defer file.Close()
 	return chunks[0].FileExtension
 }
 
 func CreateChunksAndEncrypt(filepath string, m *SwarmMaster, name string, fileExtension string) {
 
-	allChunks := make([]string, 0)
-
-	switch fileExtension {
-
-	case fileExtentions().txt:
-		allChunks = ReadTxt(filepath)
-
-	case fileExtentions().pdf:
-		allChunks = ReadPdf(filepath)
-
-	case fileExtentions().docx:
-
-	default:
-		fmt.Println("Not supported File Type")
-	}
-
-	writefile(allChunks, filepath, m, name, fileExtension)
+	writefile(CreateFileChunks(filepath), filepath, m, name, fileExtension)
 }
 
-func writefile(data []string, filePath string, m *SwarmMaster, name string, fileExtension string) {
+func writefile(data [][]byte, filePath string, m *SwarmMaster, name string, fileExtension string) {
 
 	nodes := m.GetActiveNodes()
 
@@ -160,7 +161,7 @@ func writefile(data []string, filePath string, m *SwarmMaster, name string, file
 			fmt.Println(err)
 		}
 		defer file.Close()
-		file.WriteString(EncryptFile(chunk))
+		file.Write([]byte(EncryptFile(string(chunk))))
 		counter++
 	}
 
