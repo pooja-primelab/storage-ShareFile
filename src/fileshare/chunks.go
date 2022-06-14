@@ -1,7 +1,6 @@
 package fileshare
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/dgraph-io/badger"
 	"github.com/google/uuid"
-	"github.com/ledongthuc/pdf"
 )
 
 const (
@@ -75,22 +73,6 @@ func GetEncryptedFiles(fileName string, ownername string) []File {
 	return chunks
 }
 
-func readPdf(path string) (string, error) {
-
-	f, r, err := pdf.Open(path)
-	defer f.Close()
-	if err != nil {
-		return "", err
-	}
-	var buf bytes.Buffer
-	b, err := r.GetPlainText()
-	if err != nil {
-		return "", err
-	}
-	buf.ReadFrom(b)
-	return buf.String(), nil
-}
-
 func ConvertDecryptFiles(fileName string, ownername string) string {
 
 	chunks := GetEncryptedFiles(fileName, ownername)
@@ -122,64 +104,16 @@ func CreateChunksAndEncrypt(filepath string, m *SwarmMaster, name string, fileEx
 	switch fileExtension {
 
 	case fileExtentions().txt:
-		file, err := os.Open(filepath)
-		Handle(err)
-		defer file.Close()
-
-		info, err := os.Stat(filepath)
-		Handle(err)
-		chunkSize := (int(info.Size()) / chunkFileSize) + 1
-
-		scanner := bufio.NewScanner(file)
-		texts := make([]string, 0)
-		for scanner.Scan() {
-			text := scanner.Text()
-			texts = append(texts, text)
-		}
-		if err := scanner.Err(); err != nil {
-			log.Fatal(err)
-		}
-
-		lengthPerSplit := len(texts) / chunkSize
-
-		for i := 0; i < chunkSize; i++ {
-			if i+1 == chunkSize {
-				chunkTexts := texts[i*lengthPerSplit:]
-				allChunks = append(allChunks, strings.Join(chunkTexts, "\n"))
-			} else {
-				chunkTexts := texts[i*lengthPerSplit : (i+1)*lengthPerSplit]
-				allChunks = append(allChunks, strings.Join(chunkTexts, "\n"))
-			}
-		}
+		allChunks = ReadTxt(filepath)
 
 	case fileExtentions().pdf:
-		data, err := readPdf(filepath)
-		Handle(err)
-
-		info, err := os.Stat(filepath)
-		Handle(err)
-
-		var m int64 = info.Size()
-		nSize := int(m)
-		chunkSize := nSize / 10000 // 10 KB per chunk
-		lengthPerSplit := len(data) / chunkSize
-
-		for i := 0; i < chunkSize; i++ {
-			if i+1 == chunkSize {
-				chunkTexts := data[i*lengthPerSplit:]
-				allChunks = append(allChunks, chunkTexts)
-			} else {
-				chunkTexts := data[i*lengthPerSplit : (i+1)*lengthPerSplit]
-				allChunks = append(allChunks, chunkTexts)
-			}
-		}
+		allChunks = ReadPdf(filepath)
 
 	case fileExtentions().docx:
 
 	default:
 		fmt.Println("Not supported File Type")
 	}
-	fmt.Println("allchunks final", allChunks)
 
 	writefile(allChunks, filepath, m, name, fileExtension)
 }
