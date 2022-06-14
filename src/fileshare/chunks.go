@@ -14,6 +14,7 @@ import (
 
 	"github.com/dgraph-io/badger"
 	"github.com/google/uuid"
+	"github.com/ledongthuc/pdf"
 )
 
 const (
@@ -21,6 +22,22 @@ const (
 	cryptoKey         = "teteteteteetesdsdsdsdsdt"
 	chunkFileSize int = 256 // bytes
 )
+
+var Colors = fileExtentions()
+
+func fileExtentions() *fileExtention {
+	return &fileExtention{
+		txt:  ".txt",
+		pdf:  ".pdf",
+		docx: ".docx",
+	}
+}
+
+type fileExtention struct {
+	txt  string
+	pdf  string
+	docx string
+}
 
 func ReadDir(dirname string) []os.FileInfo {
 
@@ -55,41 +72,30 @@ func GetEncryptedFiles(fileName string, ownername string) []File {
 			chunks = append(chunks, c)
 		}
 	}
-
-	// chain.Database.View(func(txn *badger.Txn) error {
-	// 	it := txn.NewIterator(badger.DefaultIteratorOptions)
-	// 	defer it.Close()
-	// 	prefix := []byte(fileName)
-	// 	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-	// 		item := it.Item()
-	// 		k := item.Key()
-	// 		fmt.Println("K >", string(k))
-
-	// 		valCopy, err := item.ValueCopy(nil)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-
-	// 		fmt.Println("K >", string(k))
-	// 		var p2 File
-
-	// 		json.Unmarshal(valCopy, &p2)
-
-	// 		if p2.Ownername == ownername {
-	// 			chunks = append(chunks, p2)
-	// 		}
-
-	// 	}
-	// 	return nil
-	// })
 	return chunks
 }
 
-func ConvertDecryptFiles(fileName string, ownername string) {
+func readPdf(path string) (string, error) {
+
+	f, r, err := pdf.Open(path)
+	defer f.Close()
+	if err != nil {
+		return "", err
+	}
+	var buf bytes.Buffer
+	b, err := r.GetPlainText()
+	if err != nil {
+		return "", err
+	}
+	buf.ReadFrom(b)
+	return buf.String(), nil
+}
+
+func ConvertDecryptFiles(fileName string, ownername string) string {
 
 	chunks := GetEncryptedFiles(fileName, ownername)
 
-	tempfile := "./testdirs/" + "final.txt"
+	tempfile := "./testdirs/" + "final" + chunks[0].FileExtension
 
 	file, err := os.Create(tempfile)
 	if err != nil {
@@ -106,53 +112,79 @@ func ConvertDecryptFiles(fileName string, ownername string) {
 		fmt.Println("file length is ", length, data)
 	}
 	defer file.Close()
-	databyte := ReadFile(tempfile)
-	fmt.Println("Actual data of saved file is ", string(databyte))
+	return chunks[0].FileExtension
 }
 
-func CreateChunksAndEncrypt(filepath string, m *SwarmMaster, name string) {
+func CreateChunksAndEncrypt(filepath string, m *SwarmMaster, name string, fileExtension string) {
 
-	file, err := os.Open(filepath)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	info, err := os.Stat(filepath)
-	if err != nil {
-		fmt.Println("Error", err)
-	}
-
-	chunkSize := (int(info.Size()) / chunkFileSize) + 1
-
-	scanner := bufio.NewScanner(file)
-	texts := make([]string, 0)
-	for scanner.Scan() {
-		text := scanner.Text()
-		texts = append(texts, text)
-	}
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	lengthPerSplit := len(texts) / chunkSize
 	allChunks := make([]string, 0)
 
-	for i := 0; i < chunkSize; i++ {
-		if i+1 == chunkSize {
-			chunkTexts := texts[i*lengthPerSplit:]
-			allChunks = append(allChunks, strings.Join(chunkTexts, "\n"))
-		} else {
-			chunkTexts := texts[i*lengthPerSplit : (i+1)*lengthPerSplit]
-			allChunks = append(allChunks, strings.Join(chunkTexts, "\n"))
-		}
-	}
+	switch fileExtension {
 
-	writefile(allChunks, filepath, m, name)
+	case fileExtentions().txt:
+		file, err := os.Open(filepath)
+		Handle(err)
+		defer file.Close()
+
+		info, err := os.Stat(filepath)
+		Handle(err)
+		chunkSize := (int(info.Size()) / chunkFileSize) + 1
+
+		scanner := bufio.NewScanner(file)
+		texts := make([]string, 0)
+		for scanner.Scan() {
+			text := scanner.Text()
+			texts = append(texts, text)
+		}
+		if err := scanner.Err(); err != nil {
+			log.Fatal(err)
+		}
+
+		lengthPerSplit := len(texts) / chunkSize
+
+		for i := 0; i < chunkSize; i++ {
+			if i+1 == chunkSize {
+				chunkTexts := texts[i*lengthPerSplit:]
+				allChunks = append(allChunks, strings.Join(chunkTexts, "\n"))
+			} else {
+				chunkTexts := texts[i*lengthPerSplit : (i+1)*lengthPerSplit]
+				allChunks = append(allChunks, strings.Join(chunkTexts, "\n"))
+			}
+		}
+
+	case fileExtentions().pdf:
+		data, err := readPdf(filepath)
+		Handle(err)
+
+		info, err := os.Stat(filepath)
+		Handle(err)
+
+		var m int64 = info.Size()
+		nSize := int(m)
+		chunkSize := nSize / 10000 // 10 KB per chunk
+		lengthPerSplit := len(data) / chunkSize
+
+		for i := 0; i < chunkSize; i++ {
+			if i+1 == chunkSize {
+				chunkTexts := data[i*lengthPerSplit:]
+				allChunks = append(allChunks, chunkTexts)
+			} else {
+				chunkTexts := data[i*lengthPerSplit : (i+1)*lengthPerSplit]
+				allChunks = append(allChunks, chunkTexts)
+			}
+		}
+
+	case fileExtentions().docx:
+
+	default:
+		fmt.Println("Not supported File Type")
+	}
+	fmt.Println("allchunks final", allChunks)
+
+	writefile(allChunks, filepath, m, name, fileExtension)
 }
 
-func writefile(data []string, filePath string, m *SwarmMaster, name string) {
+func writefile(data []string, filePath string, m *SwarmMaster, name string, fileExtension string) {
 
 	nodes := m.GetActiveNodes()
 
@@ -165,7 +197,7 @@ func writefile(data []string, filePath string, m *SwarmMaster, name string) {
 			counter = 0
 		}
 
-		fileChunk := name + "-" + strconv.Itoa(index) + "-chunks-" + uuid.New().String() + ".txt"
+		fileChunk := name + "-" + strconv.Itoa(index) + "-chunks-" + uuid.New().String() + fileExtension
 		path := "../main/testdirs/peer" + strconv.Itoa(registerPeers[counter].PeerID) + "/" + fileChunk
 		file, err := os.Create(path)
 		if err != nil {
@@ -178,6 +210,7 @@ func writefile(data []string, filePath string, m *SwarmMaster, name string) {
 
 		chunks.Chunkname = fileChunk
 		chunks.FilePath = path
+		chunks.FileExtension = fileExtension
 		chunks.FileName = name
 		chunks.Ownername = "StorageTeam"
 		chunks.NodeAddress = strconv.Itoa(registerPeers[counter].PeerID)
@@ -186,7 +219,6 @@ func writefile(data []string, filePath string, m *SwarmMaster, name string) {
 		chunks.Port = registerPeers[counter].Port
 
 		SaveFileInfo(chunks)
-		// inst.Database.Close()
 
 		if err != nil {
 			fmt.Println(err)
@@ -200,29 +232,19 @@ func writefile(data []string, filePath string, m *SwarmMaster, name string) {
 func SearchFiles(filename string, ownername string) []File {
 
 	chunks := GetChunksByPrefix(filename, ownername)
-
-	// for index, peer := range registerPeers {
-
-	// 	fmt.Println("peer files with indexx ", index)
-	// 	fmt.Println("peer.PeerID ", peer.PeerID)
-	// 	fmt.Println("peer.directory ", peer.directory)
-	// 	fmt.Println("peer.files ", peer.files)
-	// 	fmt.Println("peer.numFiles ", peer.numFiles)
-	// 	fmt.Println("peer.numPeers ", peer.numPeers)
-	// 	fmt.Println("peer.Port ", peer.Port)
-	// }
 	return chunks
 }
 
 type File struct {
-	Chunkname   string
-	FilePath    string
-	Ownername   string
-	FileName    string
-	NodeAddress string
-	BlockHash   []byte
-	ChuckIndex  int
-	Port        string
+	Chunkname     string
+	FilePath      string
+	Ownername     string
+	FileName      string
+	FileExtension string
+	NodeAddress   string
+	BlockHash     []byte
+	ChuckIndex    int
+	Port          string
 }
 
 type FileDB struct {
@@ -266,21 +288,6 @@ func SaveFileInfo(chunk File) []File {
 
 func GetChunkByKey(key string) string {
 
-	// var file []byte
-
-	// chain.Database.View(func(txn *badger.Txn) error {
-
-	// 	item, err := txn.Get([]byte(key))
-	// 	if err != nil {
-	// 		fmt.Println("Key not found.")
-	// 		return err
-	// 	}
-	// 	file, err = item.Value()
-	// 	fmt.Println("Item: ", string(file))
-	// 	Handle(err)
-	// 	return err
-	// })
-
 	var finalResponse []byte
 	file, err := ioutil.ReadFile("output.json")
 	if err != nil {
@@ -319,33 +326,6 @@ func GetChunksByPrefix(prefix string, ownername string) []File {
 			chunks = append(chunks, c)
 		}
 	}
-
-	// var dst []string
-
-	// chain.Database.View(func(txn *badger.Txn) error {
-	// 	it := txn.NewIterator(badger.DefaultIteratorOptions)
-	// 	defer it.Close()
-	// 	prefix := []byte(prefix)
-	// 	for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-	// 		item := it.Item()
-	// 		k := item.Key()
-
-	// 		valCopy, err := item.ValueCopy(nil)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-
-	// 		fmt.Println("K >", string(k))
-	// 		var p2 File
-
-	// 		json.Unmarshal(valCopy, &p2)
-
-	// 		if p2.Ownername == ownername {
-	// 			chunks = append(chunks, p2)
-	// 		}
-	// 	}
-	// 	return nil
-	// })
 	return chunks
 }
 func Handle(err error) {

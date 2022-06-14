@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -66,9 +67,10 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
-	fmt.Println(handler.Filename, "uploaded")
 
-	tempFile, err := ioutil.TempFile("", "file.*.txt")
+	fileExtension := filepath.Ext(handler.Filename)
+	pattern := "file.*" + fileExtension
+	tempFile, err := ioutil.TempFile("", pattern)
 
 	if err != nil {
 		fmt.Println(err)
@@ -82,7 +84,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 	tempFile.Write(fileBytes)
 
-	fileshare.CreateChunksAndEncrypt(tempFile.Name(), m, handler.Filename)
+	fileshare.CreateChunksAndEncrypt(tempFile.Name(), m, handler.Filename, fileExtension)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(`Successfully Uploaded File`)
@@ -111,42 +113,7 @@ func setupHeader(w http.ResponseWriter) {
 func main() {
 	m = fileshare.MakeSwarmMaster()
 	m.MasterTest() // this isn't really needed - we can move the code to
-
-	//	staticFunctionality()
 	setupRoutes()
-}
-
-func staticFunctionality() {
-	//creating 5 peers and connect with server
-	p1 := fileshare.MakePeer(1, "testdirs/peer1/", ":60121")
-	p2 := fileshare.MakePeer(2, "testdirs/peer2/", ":60122")
-	p3 := fileshare.MakePeer(3, "testdirs/peer3/", ":60123")
-	p4 := fileshare.MakePeer(4, "testdirs/peer4/", ":60124")
-	p5 := fileshare.MakePeer(5, "testdirs/peer5/", ":60125")
-	p1.ConnectServer()
-	p2.ConnectServer()
-	p3.ConnectServer()
-	p4.ConnectServer()
-	p5.ConnectServer()
-
-	//Register Files
-	p1.RegisterFile("test.txt")
-	p2.RegisterFile("test2.txt")
-	p3.RegisterFile("test3.txt")
-	p4.RegisterFile("test4.txt")
-	p5.RegisterFile("test5.txt")
-
-	//Peer Connecting with other peers and sharing files
-	p1.ConnectPeer(":60122", 2)
-	p1.RequestFile(":60122", 2, "test2.txt")
-
-	p2.ConnectPeer(":60123", 3)
-	p2.RequestFile(":60123", 3, "test3.txt")
-
-	//Search file
-	p1.SearchForFile("test3.txt")
-	p2.SearchForFile("test4.txt")
-	p3.SearchForFile("test9.txt")
 }
 
 func searchFile(w http.ResponseWriter, r *http.Request) {
@@ -164,10 +131,14 @@ func decryptFile(w http.ResponseWriter, r *http.Request) {
 
 	setupHeader(w)
 
-	fileshare.ConvertDecryptFiles(filename, ownername)
-	files := fileshare.ReadFile("./testdirs/" + "final.txt")
+	fmt.Println("insideerererer decrypt ", filename, ownername)
+	fileExtension := fileshare.ConvertDecryptFiles(filename, ownername)
+	fmt.Println("insideerererer decrypt dasasas")
+
+	tempFileName := "final" + fileExtension
+	files := fileshare.ReadFile("./testdirs/" + tempFileName)
 	w.Write(files)
-	os.Remove("./testdirs/" + "final.txt")
+	os.Remove("./testdirs/" + tempFileName)
 }
 
 func setupRoutes() {

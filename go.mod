@@ -6,6 +6,7 @@ require (
 	github.com/dgraph-io/badger v1.5.4
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
+	github.com/ledongthuc/pdf v0.0.0-20220302134840-0c2507a12d80
 )
 
 require (
