@@ -20,6 +20,7 @@ const (
 	dbPath            = "./database"
 	cryptoKey         = "teteteteteetesdsdsdsdsdt"
 	chunkFileSize int = 256 // bytes
+	BUFFERSIZE    int = 500
 )
 
 var Colors = fileExtentions()
@@ -162,6 +163,72 @@ func writefile(data []string, filePath string, m *SwarmMaster, name string, file
 		file.WriteString(EncryptFile(chunk))
 		counter++
 	}
+
+	// upload manifest file to all nodes
+	updateManifest(m)
+}
+
+func updateManifest(m *SwarmMaster) {
+	nodes := m.GetActiveNodes()
+	for _, b := range nodes {
+		destination := "testdirs/peer" + strconv.Itoa(b) + "/output.json"
+		CopyManifest(destination)
+	}
+}
+
+func CopyManifest(dst string) error {
+
+	src := "output.json"
+
+	sourceFileStat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file.", src)
+	}
+
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	//remove file if already file exist
+	_, err = os.Stat(dst)
+	if err == nil {
+		err := os.Remove(dst)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+
+	if err != nil {
+		panic(err)
+	}
+
+	buf := make([]byte, BUFFERSIZE)
+	for {
+		n, err := source.Read(buf)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+
+		if _, err := destination.Write(buf[:n]); err != nil {
+			return err
+		}
+	}
+	return err
 }
 
 func SearchFiles(filename string, ownername string) []File {
