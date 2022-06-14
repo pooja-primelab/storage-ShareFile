@@ -13,6 +13,7 @@ import (
 
 	"github.com/dgraph-io/badger"
 	"github.com/google/uuid"
+	"github.com/ledongthuc/pdf"
 )
 
 const (
@@ -266,4 +267,39 @@ func Handle(err error) {
 	if err != nil {
 		log.Panic(err)
 	}
+}
+
+func isSameSentence(t1, t2 pdf.Text) bool {
+	if t1.Font == t2.Font && t1.FontSize == t2.FontSize {
+		return true
+	}
+	return false
+}
+
+func readPdf2(path string) (string, error) {
+	f, r, err := pdf.Open(path)
+	// remember close file
+	defer f.Close()
+	if err != nil {
+		return "", err
+	}
+	totalPage := r.NumPage()
+
+	for pageIndex := 1; pageIndex <= totalPage; pageIndex++ {
+		p := r.Page(pageIndex)
+		if p.V.IsNull() {
+			continue
+		}
+		var lastTextStyle pdf.Text
+		texts := p.Content().Text
+		for _, text := range texts {
+			if isSameSentence(text, lastTextStyle) {
+				lastTextStyle.S = lastTextStyle.S + text.S
+			} else {
+				fmt.Printf("Font: %s, Font-size: %f, x: %f, y: %f, content: %s \n", lastTextStyle.Font, lastTextStyle.FontSize, lastTextStyle.X, lastTextStyle.Y, lastTextStyle.S)
+				lastTextStyle = text
+			}
+		}
+	}
+	return "", nil
 }
