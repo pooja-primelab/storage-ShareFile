@@ -53,6 +53,9 @@ func createPeer(w http.ResponseWriter, r *http.Request) {
 	}
 	p1.ConnectServer()
 
+	destination := testDirectory + "/output.json"
+	fileshare.CopyManifest(destination)
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(p1)
 }
