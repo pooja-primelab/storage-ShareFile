@@ -100,23 +100,25 @@ func ConvertDecryptFiles(fileName string, ownername string) string {
 
 func CreateChunksAndEncrypt(filepath string, m *SwarmMaster, name string, fileExtension string) {
 
-	allChunks := make([]string, 0)
+	// allChunks := make([]string, 0)
 
-	switch fileExtension {
+	// switch fileExtension {
 
-	case fileExtentions().txt:
-		allChunks = ReadTxt(filepath)
+	// case fileExtentions().txt:
+	// 	allChunks = ReadTxt(filepath)
 
-	case fileExtentions().pdf:
-		allChunks = ReadPdf(filepath)
+	// case fileExtentions().pdf:
+	// 	allChunks = ReadPdf(filepath)
 
-	case fileExtentions().docx:
+	// case fileExtentions().docx:
 
-	default:
-		fmt.Println("Not supported File Type")
-	}
+	// default:
+	// 	fmt.Println("Not supported File Type")
+	// }
 
-	writefile(allChunks, filepath, m, name, fileExtension)
+	// writefile(allChunks, filepath, m, name, fileExtension)
+
+	erasureEncoding(4,2,filepath,"/Users/anushkasamaranayake/Documents/private/primelabs/blockchain/git/storage-ShareFile",name)
 }
 
 func writefile(data []string, filePath string, m *SwarmMaster, name string, fileExtension string) {
