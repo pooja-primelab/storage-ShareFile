@@ -98,7 +98,7 @@ func ConvertDecryptFiles(fileName string, ownername string) string {
 	return chunks[0].FileExtension
 }
 
-func CreateChunksAndEncrypt(filepath string, m *SwarmMaster, name string, fileExtension string) {
+func CreateChunksAndEncrypt(filepath string, m *SwarmMaster, name string, fileExtension string, storagePath string) {
 
 	// allChunks := make([]string, 0)
 
@@ -117,8 +117,8 @@ func CreateChunksAndEncrypt(filepath string, m *SwarmMaster, name string, fileEx
 	// }
 
 	// writefile(allChunks, filepath, m, name, fileExtension)
-
-	erasureEncoding(4,2,filepath,"/Users/anushkasamaranayake/Documents/private/primelabs/blockchain/git/storage-ShareFile",name)
+//	path := "../main/testdirs/peer" + strconv.Itoa(registerPeers[counter].PeerID) + "/" + fileChunk
+	erasureEncoding(4,2,filepath,storagePath,name)
 }
 
 func writefile(data []string, filePath string, m *SwarmMaster, name string, fileExtension string) {

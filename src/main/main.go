@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"FileShare/src/fileshare"
 	"encoding/json"
 	"fmt"
@@ -17,6 +18,15 @@ import (
 
 var m *fileshare.SwarmMaster
 var r *mux.Router
+var dataStoragePath = flag.String("ls", "", "local storage path")
+
+func main() {
+	
+	flag.Parse()
+	m = fileshare.MakeSwarmMaster()
+	m.MasterTest() // this isn't really needed - we can move the code to
+	setupRoutes()
+}
 
 func pingFunc(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -84,7 +94,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 
 	tempFile.Write(fileBytes)
 
-	fileshare.CreateChunksAndEncrypt(tempFile.Name(), m, handler.Filename, fileExtension)
+	fileshare.CreateChunksAndEncrypt(tempFile.Name(), m, handler.Filename, fileExtension,*dataStoragePath)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(`Successfully Uploaded File`)
@@ -108,12 +118,6 @@ func setupHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Content-Type", "application/json")
-}
-
-func main() {
-	m = fileshare.MakeSwarmMaster()
-	m.MasterTest() // this isn't really needed - we can move the code to
-	setupRoutes()
 }
 
 func searchFile(w http.ResponseWriter, r *http.Request) {
