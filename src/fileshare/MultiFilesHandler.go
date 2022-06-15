@@ -18,7 +18,6 @@ func CreateFileChunks(pathName string) [][]byte {
 		fmt.Println(err)
 		return nil
 	}
-	fmt.Println("fileinfo: ", fileinfo)
 
 	filesize := fileinfo.Size()
 	buffer := make([]byte, filesize)
@@ -36,7 +35,6 @@ func RetrieveFilesFromChunk(allFiles []string) []byte {
 	for _, element := range allFiles {
 		file, err := os.Open(element)
 		if err != nil {
-			fmt.Println("Inside Err")
 			fmt.Println(err)
 			continue
 		}

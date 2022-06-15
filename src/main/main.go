@@ -24,7 +24,7 @@ func pingFunc(w http.ResponseWriter, r *http.Request) {
 }
 
 func createPeer(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Endpoint Hit: CreatePeer")
+	fmt.Println("\nEndpoint Hit: CreatePeer")
 
 	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -36,7 +36,6 @@ func createPeer(w http.ResponseWriter, r *http.Request) {
 	_ = json.Unmarshal(resBytes, &jsonRes)
 
 	var id int = int(jsonRes["id"].(float64))
-	fmt.Println("id", id)
 	testDirectory := "testdirs/peer" + strconv.Itoa(id)
 	const nodeIdPrefix = 60120
 	port := ":" + strconv.Itoa(nodeIdPrefix+id)
@@ -46,7 +45,6 @@ func createPeer(w http.ResponseWriter, r *http.Request) {
 	p1 := fileshare.MakePeer(id, testDirectory, port)
 	nodes := m.GetActiveNodes()
 	if len(nodes) > 0 {
-		fmt.Println("Available Nodes: ", nodes)
 		randomNodeId := rand.Int() % len(nodes)
 		fmt.Println("Node ", id, " will connect with ", nodes[randomNodeId])
 		p1.ConnectPeer(":"+strconv.Itoa(nodeIdPrefix+nodes[randomNodeId]), nodes[randomNodeId])
@@ -134,9 +132,7 @@ func decryptFile(w http.ResponseWriter, r *http.Request) {
 
 	setupHeader(w)
 
-	fmt.Println("insideerererer decrypt ", filename, ownername)
 	fileExtension := fileshare.ConvertDecryptFiles(filename, ownername)
-	fmt.Println("insideerererer decrypt dasasas")
 
 	tempFileName := "final" + fileExtension
 	files := fileshare.ReadFile("./testdirs/" + tempFileName)

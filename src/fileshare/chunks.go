@@ -52,7 +52,6 @@ func ReadDir(dirname string) []os.FileInfo {
 func ReadFile(filePath string) []byte {
 	file, err := os.Open(filePath)
 	if err != nil {
-		fmt.Println("Inside Err")
 		fmt.Println(err)
 	}
 	defer file.Close()
@@ -92,7 +91,6 @@ func GetEncryptedFiles(fileName string, ownername string) []File {
 func ConvertDecryptFiles(fileName string, ownername string) string {
 
 	chunks := GetEncryptedFiles(fileName, ownername)
-	fmt.Println("chunks2: ", chunks)
 	sort.SliceStable(chunks, func(i, j int) bool {
 		return chunks[i].ChuckIndex < chunks[j].ChuckIndex
 	})
@@ -100,7 +98,6 @@ func ConvertDecryptFiles(fileName string, ownername string) string {
 	for _, elem := range chunks {
 		allFilePaths = append(allFilePaths, string(elem.FilePath))
 	}
-	fmt.Println("allFilePaths: ", allFilePaths)
 	allBufferData := RetrieveFilesFromChunk(allFilePaths)
 
 	tempfile := "./testdirs/" + "final" + chunks[0].FileExtension
@@ -271,8 +268,7 @@ func SaveFileInfo(chunk File) []File {
 
 	reqBodyBytes := new(bytes.Buffer)
 	json.NewEncoder(reqBodyBytes).Encode(chunk)
-	key := chunk.Chunkname
-	fmt.Println("key is ", key)
+	// key := chunk.Chunkname
 
 	file, err := ioutil.ReadFile("output.json")
 	if err != nil {
